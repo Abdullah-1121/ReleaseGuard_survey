@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How does your team ship software? A 10-minute survey</title>
+<meta name="description" content="A short research survey for QA engineers, developers, product managers and engineering leads about how teams test and release software.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fog:#edf0f3;      /* page */
+    --paper:#ffffff;    /* inputs */
+    --ink:#18212b;      /* text + selected state */
+    --steel:#5a6675;    /* secondary text */
+    --rule:#cfd6de;     /* lines */
+    --pass:#17804a;     /* completed stage */
+    --wait:#d9902b;     /* current stage */
+    --bad:#b42318;      /* errors */
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--fog);color:var(--ink);font-family:"Schibsted Grotesk",system-ui,sans-serif;font-size:17px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .page{max-width:680px;margin:0 auto;padding:40px 22px 80px}
+  [hidden]{display:none!important}
+  button{font:inherit;cursor:pointer}
+  :focus-visible{outline:3px solid var(--wait);outline-offset:2px}
+
+  /* ---------- pipeline rail (the one memorable element) ---------- */
+  .rail{display:flex;align-items:flex-start;margin:0 0 44px;padding:0;list-style:none}
+  .stage{flex:1;position:relative;font-size:13.5px;color:var(--steel);min-width:0}
+  .stage::before{content:"";position:absolute;top:10px;left:0;right:0;height:2px;background:var(--rule)}
+  .stage:first-child::before{left:11px}
+  .stage:last-child::before{right:calc(100% - 11px)}
+  .stage.done::before{background:var(--pass)}
+  .dot{position:relative;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--fog);border:2px solid var(--rule);transition:background .25s,border-color .25s}
+  .stage.done .dot{background:var(--pass);border-color:var(--pass)}
+  .stage.done .dot::after{content:"";width:9px;height:5px;border:2px solid #fff;border-top:0;border-right:0;transform:translateY(-1px) rotate(-45deg)}
+  .stage.now .dot{border-color:var(--wait);background:#fff}
+  .stage.now .dot::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--wait);animation:pulse 1.6s ease-in-out infinite}
+  .stage span{display:block;margin-top:8px;padding-right:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stage.now span{color:var(--ink);font-weight:600}
+  @keyframes pulse{50%{transform:scale(.55)}}
+
+  /* ---------- landing ---------- */
+  .hero h1{font-size:clamp(34px,6.4vw,58px);line-height:1.04;letter-spacing:-.025em;font-weight:800;margin:0 0 22px;max-width:15ch}
+  .hero p{font-size:19px;color:var(--steel);margin:0 0 16px;max-width:58ch}
+  .hero p strong{color:var(--ink);font-weight:600}
+  .terms{display:flex;flex-wrap:wrap;gap:10px 28px;margin:28px 0 34px;padding:16px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);font-size:15px}
+  .terms div{color:var(--steel)}
+  .terms b{color:var(--ink);font-weight:600}
+
+  .btn{border:0;border-radius:6px;background:var(--ink);color:#fff;font-weight:600;font-size:17px;padding:14px 26px}
+  .btn:hover{background:#2a3644}
+  .btn:disabled{opacity:.5;cursor:default}
+  .btn.quiet{background:transparent;color:var(--ink);padding:14px 4px;text-decoration:underline;text-underline-offset:4px}
+  .btn.quiet:hover{background:transparent;color:var(--steel)}
+
+  /* ---------- survey ---------- */
+  .step-title{font-size:30px;line-height:1.15;letter-spacing:-.015em;font-weight:800;margin:0 0 8px}
+  .step-help{color:var(--steel);margin:0 0 10px}
+  .q{margin-top:40px}
+  .q-head{display:flex;gap:12px}
+  .q-num{flex:none;font-weight:600;color:var(--steel);font-variant-numeric:tabular-nums;min-width:28px}
+  .q-body{flex:1;min-width:0}
+  .q-title{font-weight:600;font-size:18px;line-height:1.35;margin:0}
+  .q-title .opt-tag{font-weight:400;color:var(--steel);font-size:15px}
+  .q-help{color:var(--steel);font-size:15px;margin:4px 0 0}
+  .choices{display:grid;gap:6px;margin-top:14px}
+  .choice{position:relative;display:block}
+  .choice input{position:absolute;opacity:0;width:1px;height:1px}
+  .choice span{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--paper);border:1px solid var(--rule);border-radius:6px;transition:background .12s,color .12s}
+  .choice span::before{content:"";flex:none;width:16px;height:16px;border:1.5px solid #9aa5b1;border-radius:50%}
+  .choice input[type=checkbox]+span::before{border-radius:3px}
+  .choice:hover span{border-color:#9aa5b1}
+  .choice input:checked+span{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .choice input:checked+span::before{border-color:#fff;background:#fff;box-shadow:inset 0 0 0 3px var(--ink)}
+  .choice input[type=checkbox]:checked+span::before{box-shadow:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%2318212b' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/13px no-repeat}
+  .choice input:focus-visible+span{outline:3px solid var(--wait);outline-offset:2px}
+  .two{grid-template-columns:1fr 1fr}
+
+  .scale{display:flex;gap:6px;margin-top:14px}
+  .scale .choice{flex:1}
+  .scale .choice span{justify-content:center;padding:12px 0;font-weight:600}
+  .scale .choice span::before{display:none}
+  .scale-ends{display:flex;justify-content:space-between;color:var(--steel);font-size:14px;margin-top:6px}
+
+  input[type=text],input[type=email],input[type=tel],textarea{width:100%;font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;margin-top:14px}
+  textarea{min-height:120px;resize:vertical}
+  input::placeholder,textarea::placeholder{color:#97a1ad}
+  .other-text{margin-top:6px!important}
+
+  .matrix{width:100%;border-collapse:collapse;margin-top:14px;font-size:15px;background:var(--paper);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+  .matrix th,.matrix td{padding:11px 8px;border-top:1px solid var(--rule);text-align:center;vertical-align:middle}
+  .matrix thead th{border-top:0;font-weight:600;color:var(--steel);font-size:13.5px;line-height:1.25}
+  .matrix th[scope=row]{text-align:left;font-weight:400;padding-left:14px;width:44%}
+  .matrix input{width:18px;height:18px;accent-color:var(--ink);margin:0}
+  .matrix tr.missing th[scope=row]{color:var(--bad)}
+
+  .roles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+  .roles .choice span{display:block;padding:16px;min-height:100%}
+  .roles .choice span::before{display:none}
+  .roles .choice b{display:block;font-weight:600}
+  .roles .choice small{display:block;font-size:14.5px;color:var(--steel);margin-top:2px}
+  .roles .choice input:checked+span small{color:#c4ccd5}
+
+  .fieldrow{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+  .field label{display:block;font-size:15px;font-weight:600;margin-top:16px}
+  .field label i{font-style:normal;font-weight:400;color:var(--steel)}
+  .field input{margin-top:6px}
+
+  .err{display:none;color:var(--bad);font-size:15px;margin-top:8px}
+  .q.invalid .err{display:block}
+  .q.invalid .choice span,.q.invalid textarea,.q.invalid input[type=text],.q.invalid input[type=email]{border-color:var(--bad)}
+
+  .nav{display:flex;justify-content:space-between;align-items:center;margin-top:48px;padding-top:24px;border-top:1px solid var(--rule)}
+  .alert{display:none;margin-top:20px;padding:12px 14px;border-left:3px solid var(--bad);background:#fff;color:var(--bad);font-size:15px}
+  .preview{margin:0 0 28px;padding:10px 14px;border-left:3px solid var(--wait);background:#fff;font-size:15px;color:var(--steel)}
+
+  .offer{margin-top:14px;padding:22px;background:var(--ink);color:#fff;border-radius:8px}
+  .offer h3{margin:0 0 6px;font-size:21px;letter-spacing:-.01em}
+  .offer p{margin:0;color:#c4ccd5;font-size:16px}
+  .offer ul{margin:12px 0 0;padding-left:20px;color:#e3e8ee;font-size:16px}
+  .offer .choice span{background:transparent;color:#fff;border-color:#4a5868;margin-top:16px}
+  .offer .choice span::before{border-color:#c4ccd5}
+  .offer .choice input:checked+span{background:#fff;color:var(--ink);border-color:#fff}
+  .offer .choice input:checked+span::before{background:var(--ink);border-color:var(--ink);box-shadow:none}
+  .offer .choice input[type=checkbox]:checked+span::before{background:var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/13px no-repeat}
+
+  .finish h1{font-size:clamp(32px,5.5vw,48px);line-height:1.06;letter-spacing:-.02em;font-weight:800;margin:0 0 16px}
+  .finish p{color:var(--steel);font-size:18px;max-width:52ch}
+  .finish .rail{margin-bottom:36px}
+
+  footer{margin-top:64px;color:var(--steel);font-size:14px;max-width:58ch}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+  @media (max-width:620px){
+    body{font-size:16px}
+    .page{padding-top:26px}
+    .roles,.two,.fieldrow{grid-template-columns:1fr}
+    .stage span{display:none}
+    .stage.now span{display:block;position:absolute;left:0;white-space:nowrap;overflow:visible}
+    .stage:last-child.now span{left:auto;right:0}
+    .rail{margin-bottom:56px}
+    .q-num{min-width:22px}
+    .matrix,.matrix tbody,.matrix tr,.matrix th,.matrix td{display:block}
+    .matrix thead{display:none}
+    .matrix tr{padding:12px 14px;border-top:1px solid var(--rule)}
+    .matrix tr:first-child{border-top:0}
+    .matrix th[scope=row]{padding:0 0 8px;border:0;width:auto}
+    .matrix td{display:inline-flex;align-items:center;gap:6px;border:0;padding:4px 14px 4px 0;font-size:14px}
+    .matrix td::after{content:attr(data-col)}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <!-- ===================== LANDING ===================== -->
+  <section id="landing">
+    <div id="previewNote" class="preview" hidden>Preview: answers aren't saved until the page is connected to your Google Sheet.</div>
+    <ol class="rail" id="landingRail" aria-label="Survey sections"></ol>
+    <div class="hero">
+      <h1>When did a release last keep you up at night?</h1>
+      <p>We're a small team researching how software teams test and ship web apps: what slows releases down, what slips through, and what it costs.</p>
+      <p>We're exploring a tool that tests each release automatically and tells you whether it's safe to ship. Before we build anything, <strong>we want to hear how your team actually works.</strong></p>
+    </div>
+    <div class="terms">
+      <div><b>About 10 minutes.</b> Questions change with your role.</div>
+      <div><b>Anonymous by default.</b> Contact details are optional.</div>
+    </div>
+    <button class="btn" id="startBtn">Start the survey</button>
+  </section>
+
+  <!-- ===================== SURVEY ===================== -->
+  <section id="survey" hidden>
+    <ol class="rail" id="rail" aria-label="Progress"></ol>
+    <h2 class="step-title" id="stepTitle"></h2>
+    <p class="step-help" id="stepHelp"></p>
+    <form id="stepForm" novalidate>
+      <div id="questions"></div>
+      <div class="hp" aria-hidden="true"><label>Leave empty <input type="text" id="hp" tabindex="-1" autocomplete="off"></label></div>
+      <div class="alert" id="submitError" role="alert"></div>
+      <div class="nav">
+        <button type="button" class="btn quiet" id="backBtn">Back</button>
+        <button type="submit" class="btn" id="nextBtn">Continue</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ===================== DONE ===================== -->
+  <section id="done" class="finish" hidden>
+    <ol class="rail" id="doneRail" aria-hidden="true"></ol>
+    <h1>Thanks, your answers are in.</h1>
+    <p id="doneMsg">Every answer helps us decide what to build first.</p>
+    <p id="doneNote" hidden></p>
+  </section>
+
+  <footer>Answers are used only for product research. Contact details are never shared or sold, and you can ask us to delete them at any time.</footer>
+</main>
+
+<script>
+/* ==================================================================
+   CONFIG: paste your Google Apps Script Web App URL (ends in /exec).
+   Leave empty for preview mode (nothing is saved).
+   ================================================================== */
+const CONFIG = {
+  ENDPOINT: 'https://script.google.com/macros/s/AKfycbyeydup6W--G42z7zeh1qFW4w1_i3aEtDdQUOMHsxmhpc50tNkc9__sNwl0vwZTfpw8/exec'
+};
+
+/* ----------------------------- content ----------------------------- */
+const ROLES = [
+  {id:'qa',   label:'QA engineer or tester',     desc:'You test releases or write automated tests'},
+  {id:'dev',  label:'Software developer',        desc:'You build features and fix bugs'},
+  {id:'pm',   label:'Product or project manager',desc:'You plan releases and keep people informed'},
+  {id:'lead', label:'CTO, founder or eng. manager', desc:'You own the team, the budget and the risk'},
+  {id:'other',label:'Something else',            desc:'You\'ll go straight to the general questions'}
+];
+
+const single = (id,title,options,req=true,help='') => ({type:'single',id,title,options,req,help});
+const multi  = (id,title,options,req=true,help='') => ({type:'multi',id,title,options,req,help:help||'Choose all that apply.'});
+const para   = (id,title,req=true,help='') => ({type:'para',id,title,req,help});
+const scale  = (id,title,low,high,req=true) => ({type:'scale',id,title,low,high,req});
+
+const ROLE_SECTIONS = {
+  qa:{short:'Your work', title:'How you test', help:'', qs:[
+    single('qa_manual_share','Roughly how much of your pre-release testing is manual?',['0–25%','26–50%','51–75%','76–100%']),
+    multi ('qa_tools','Which testing tools do you use?',['Selenium','Cypress','Playwright','Appium','Jest or Mocha','Pytest','Postman or other API tools','TestRail or Zephyr','None, mostly manual']),
+    single('qa_hours_per_release','For a typical release, how many person-hours go into testing?',['Less than 2','2–5','6–15','16–40','More than 40']),
+    single('qa_test_selection','How do you decide what to test for a release?',['I read the tickets or PRs and decide','A fixed regression checklist','Developers tell us','We test everything every time','There\'s no clear process']),
+    single('qa_maintenance','How much time goes into fixing or maintaining existing automated tests?',['Almost none','Some','A lot','We gave up on automation','We have no automation']),
+    single('qa_flaky','How often do automated tests fail for no real reason (flaky tests)?',['Never','Sometimes','Often','So often we ignore failures','Not applicable'],false),
+    multi ('qa_bug_report_fields','What do your bug reports usually include?',['Steps to reproduce','Expected vs actual result','Screenshot','Video','Browser or device','Logs or console errors','Severity or priority'],false),
+    para  ('qa_pain','Which part of testing is the slowest or most painful for you?')
+  ]},
+  dev:{short:'Your work', title:'How your code gets tested', help:'', qs:[
+    multi ('dev_self_check','How do you check your own changes before merging?',['Unit tests','Integration or API tests','Click through it manually','Code review only','CI runs the tests','I mostly rely on QA']),
+    single('dev_test_confidence','How confident are you that your existing tests catch real problems?',['Very confident','Somewhat','Not really','We have few or no tests']),
+    scale ('dev_bug_report_quality','How useful are the bug reports you receive?','Useless','Excellent'),
+    single('dev_repro_time','How long does it usually take to reproduce a reported bug?',['Minutes','Under an hour','A few hours','A day or more','I often can\'t reproduce it']),
+    single('dev_pr_clarity','Do your PRs or tickets explain the change well enough for someone else to test it?',['Always','Usually','Sometimes','Rarely']),
+    single('dev_test_time','How much of your week goes into writing or fixing tests?',['Almost none','About 10%','10–25%','More than 25%'],false),
+    para  ('dev_useful_report','What would make a bug report or test result most useful to you?')
+  ]},
+  pm:{short:'Your work', title:'Releases and decisions', help:'', qs:[
+    single('pm_decider','Who makes the final call that a release is ready?',['Me','QA lead','Engineering manager or CTO','The developer who built it','The team together','Nobody clearly owns it']),
+    para  ('pm_ready_info','What information do you use to decide a release is ready?'),
+    single('pm_code_to_live','How long between "code is done" and "it\'s live"?',['Same day','1–2 days','3–5 days','1–2 weeks','More than 2 weeks']),
+    single('pm_slipped_releases','In the last 3 months, how many releases slipped because of testing or bugs?',['0','1','2–3','4 or more','Not sure']),
+    multi ('pm_report_contents','What should a good release report show?',['Pass and fail summary','Risky areas','A clear go or no-go','Screenshots or videos','Open bugs by severity','Comparison with the last release','A plain summary for non-technical people']),
+    multi ('pm_stakeholder_comms','How do you tell stakeholders a release is going out?',['Slack or Teams','Email','Jira or Linear release notes','A meeting','We don\'t'],false)
+  ]},
+  lead:{short:'Your work', title:'Cost, risk and adoption', help:'', qs:[
+    single('lead_qa_headcount','How many people work on QA in your company, full or part-time?',['None, developers test their own work','1','2–3','4–10','More than 10']),
+    single('lead_tool_spend','Roughly how much do you spend each month on testing tools or services (USD)?',['$0','Under $100','$100–500','$500–2,000','More than $2,000','Prefer not to say']),
+    multi ('lead_bug_cost','When a serious bug reaches production, what does it usually cost you?',['Hotfix work or overtime','Customer complaints','Lost customers or revenue','Missed deadlines','A rollback','Damage to reputation','Team stress']),
+    para  ('lead_biggest_risk','What\'s your biggest quality or release risk right now?'),
+    multi ('lead_adoption_blockers','What would stop you from adopting an AI testing tool?',['Privacy of our code or data','Cost','Not trusting AI results','Hard to set up','Doesn\'t fit our stack','The team wouldn\'t use it','Nothing major']),
+    para  ('lead_proof_to_pay','What would a tool like this need to prove before you\'d pay for it?',false)
+  ]}
+};
+
+const COMMON_SECTIONS = [
+  {short:'Your team', title:'Your team and how you release', help:'', qs:[
+    single('company_size','How big is your company?',['1–10 people','11–50','51–200','201–1000','More than 1000']),
+    multi ('product_type','What do you build?',['A web SaaS product','Mobile apps','Client projects (software house or agency)','Internal tools','E-commerce','APIs or backend services']),
+    single('eng_team_size','How many engineers are on your team?',['1–5','6–15','16–50','More than 50']),
+    single('release_frequency','How often do you release to production?',['Several times a day','Weekly','Every 2 weeks','Monthly','Less often']),
+    multi ('code_ci','Where do your code and CI live?',['GitHub or GitHub Actions','GitLab','Bitbucket','Jenkins','Azure DevOps','We have no CI']),
+    multi ('tracking_tools','Where do you track bugs and talk about releases?',['Jira','Linear','Trello','ClickUp','GitHub Issues','Slack','Microsoft Teams','WhatsApp','Email'])
+  ]},
+  {short:'Problems', title:'What goes wrong, and what would help', help:'', qs:[
+    single('escaped_bugs','In the last 3 months, how many bugs reached production that testing should have caught?',['0','1–2','3–5','6–10','More than 10','Not sure']),
+    para  ('last_bad_release','Tell us about the last release that went wrong. What happened, why wasn\'t it caught, and what did it cost?',false,'This answer helps us most. A few sentences is plenty.'),
+    single('ai_usage','Do you use AI tools in development or testing today?',['No','ChatGPT or Claude now and then','Copilot or similar every day','Dedicated AI testing tools']),
+    single('false_alarm_tolerance','An automated tester sometimes flags bugs that aren\'t real. Out of every 10 alerts, how many false ones would you accept?',['None','1','2–3','4–5','Doesn\'t matter if they\'re quick to check']),
+    para  ('human_only_decisions','Which release decisions should always stay with a person?',false),
+    single('code_privacy','Can your source code or staging app be sent to an outside AI service?',['Yes','Only with approval','No, it has to stay on our own servers','Not sure']),
+    {type:'grid',id:'need',title:'How useful would each of these be for your team?',req:true,
+      cols:['Not useful','Nice to have','Very useful','Must have'],
+      rows:[
+        ['need_autogen_tests','Writing tests from a ticket or PR description'],
+        ['need_failure_explain','Explaining why each failed test failed'],
+        ['need_auto_bug_reports','Filing clear bug reports in Jira or Linear'],
+        ['need_readiness_score','A single go or no-go with a short report'],
+        ['need_flaky_detection','Spotting flaky tests'],
+        ['need_chat_status','Posting release status to Slack or Teams'],
+        ['need_self_hosted','Running on our own servers, with no data leaving']
+      ]},
+    scale ('value_rating','If a tool halved your release testing time and caught more bugs, how valuable would that be?','Not valuable','Extremely valuable')
+  ]},
+  {short:'Early access', title:'Want to try it first?', help:'', qs:[
+    {type:'offer',id:'early_access',req:false},
+    {type:'contact',id:'contact',req:false},
+    para('anything_else','Anything else we should know?',false)
+  ]}
+];
+
+const ROLE_STEP = {short:'Your role', title:'First, what do you do?', help:'We\'ll only ask questions that fit your role.', qs:[
+  {type:'role',id:'role',title:'Which best describes your role?',req:true},
+  {type:'consent',id:'consent',title:'Consent',req:true,text:'I agree that my answers can be used for this research.'}
+]};
+
+/* ------------------------------ state ------------------------------ */
+const answers = {};
+let steps = [ROLE_STEP];
+let current = 0;
+const startedAt = Date.now();
+const $ = s => document.querySelector(s);
+function toTop(){ try{ window.scrollTo(0,0); }catch(e){} }
+
+function buildSteps(){
+  steps = [ROLE_STEP];
+  if (ROLE_SECTIONS[answers.role]) steps.push(ROLE_SECTIONS[answers.role]);
+  steps.push(...COMMON_SECTIONS);
+}
+function stageNames(){
+  if (!answers.role) return ['Your role','Your work','Your team','Problems','Early access'];
+  return steps.map(s=>s.short);
+}
+
+/* ---------------------------- rendering ---------------------------- */
+function el(tag, attrs, ...kids){
+  const n = document.createElement(tag);
+  if (attrs) for (const k in attrs){
+    const v = attrs[k];
+    if (k==='class') n.className=v; else if (k==='text') n.textContent=v; else n.setAttribute(k,v);
+  }
+  kids.flat().forEach(k => { if (k!=null) n.append(k); });
+  return n;
+}
+function drawRail(target, at){
+  const names = stageNames();
+  target.innerHTML='';
+  names.forEach((name,i)=>{
+    const cls = i<at ? 'stage done' : (i===at ? 'stage now' : 'stage');
+    const li = el('li',{class:cls}, el('div',{class:'dot'}), el('span',{},name));
+    if (i===at) li.setAttribute('aria-current','step');
+    target.append(li);
+  });
+}
+function choice(type,name,value,label,checked,onchange){
+  const input = el('input',{type,name,value});
+  input.checked = !!checked;
+  input.addEventListener('change',onchange);
+  return el('label',{class:'choice'},input,el('span',{},label));
+}
+
+let qCounter = 0;
+function renderQ(q){
+  const box = el('div',{class:'q','data-id':q.id});
+  const touch = () => box.classList.remove('invalid');
+
+  if (q.type==='offer'){
+    const cb = choice('checkbox','early_access','yes','Yes, put me on the early-access list',answers.early_access==='yes',e=>{
+      answers.early_access = e.target.checked?'yes':'no'; touch(); updateContactLabels();
+    });
+    box.append(el('div',{class:'offer'},
+      el('h3',{},'Free pilot for the first teams'),
+      el('p',{},'We\'ll open the first version to a small group of teams before anyone else.'),
+      el('ul',{},
+        el('li',{},'Free use during the pilot'),
+        el('li',{},'A direct line to us, so what you ask for gets built'),
+        el('li',{},'Early-access pricing when it launches')),
+      cb));
+    box.append(el('div',{class:'err'},'Please add your name and a valid email so we can reach you.'));
+    return box;
+  }
+  if (q.type==='contact'){
+    const f = (id,label,type,ph,auto) => {
+      const inp = el('input',{type,id:'f_'+id,name:id,placeholder:ph,maxlength:'200',autocomplete:auto});
+      inp.value = answers[id]||'';
+      inp.addEventListener('input',()=>{answers[id]=inp.value; box.classList.remove('invalid');});
+      return el('div',{class:'field'}, el('label',{for:'f_'+id,id:'l_'+id},label), inp);
+    };
+    box.append(
+      el('div',{class:'fieldrow'}, f('contact_name','Name','text','Your name','name'), f('contact_email','Work email','email','you@company.com','email')),
+      el('div',{class:'fieldrow'}, f('contact_company','Company','text','Company name','organization'), f('contact_phone','WhatsApp or phone','tel','+92 …','tel')),
+      el('div',{class:'choices'}, choice('checkbox','followup_call','yes','I\'m open to a 20-minute call to talk about this',answers.followup_call==='yes',e=>{answers.followup_call=e.target.checked?'yes':'';}))
+    );
+    box.append(el('div',{class:'err'},'Please add your name and a valid email so we can reach you.'));
+    return box;
+  }
+
+  qCounter++;
+  const titleId = 't_'+q.id;
+  const title = el('p',{class:'q-title',id:titleId}, q.title);
+  if (!q.req && q.type!=='consent') title.append(' ', el('span',{class:'opt-tag'},'(optional)'));
+  const body = el('div',{class:'q-body'}, title);
+  if (q.help) body.append(el('p',{class:'q-help'},q.help));
+  box.setAttribute('role','group'); box.setAttribute('aria-labelledby',titleId);
+
+  if (q.type==='single'){
+    const c = el('div',{class:'choices'+(q.options.length>6?' two':'')});
+    q.options.forEach(o => c.append(choice('radio',q.id,o,o,answers[q.id]===o,()=>{answers[q.id]=o;touch();})));
+    body.append(c);
+  }
+  else if (q.type==='multi'){
+    const cur = answers[q.id] || [];
+    const c = el('div',{class:'choices'+(q.options.length>6?' two':'')});
+    let otherCb, otherTxt;
+    const sync = () => {
+      const picked=[...c.querySelectorAll('input[type=checkbox]:checked')].map(i=>i.value).filter(v=>v!=='__other');
+      if (otherCb.checked){ const t=otherTxt.value.trim(); picked.push(t?('Other: '+t):'Other'); }
+      answers[q.id]=picked; touch();
+    };
+    q.options.forEach(o => c.append(choice('checkbox',q.id,o,o,cur.includes(o),sync)));
+    const prev = cur.find(v=>v.indexOf('Other')===0);
+    const ol = choice('checkbox',q.id,'__other','Other',!!prev,()=>{otherTxt.hidden=!otherCb.checked; sync(); if(otherCb.checked) otherTxt.focus();});
+    otherCb = ol.querySelector('input');
+    otherTxt = el('input',{type:'text',class:'other-text',placeholder:'What else?','aria-label':'Other, please specify',maxlength:'200'});
+    otherTxt.value = prev && prev.indexOf('Other: ')===0 ? prev.slice(7) : '';
+    otherTxt.hidden = !prev;
+    otherTxt.addEventListener('input',sync);
+    c.append(ol);
+    body.append(c, otherTxt);
+  }
+  else if (q.type==='scale'){
+    const row = el('div',{class:'scale'});
+    for (let i=1;i<=5;i++) row.append(choice('radio',q.id,String(i),String(i),answers[q.id]===String(i),()=>{answers[q.id]=String(i);touch();}));
+    body.append(row, el('div',{class:'scale-ends'}, el('span',{},q.low), el('span',{},q.high)));
+  }
+  else if (q.type==='para'){
+    const t = el('textarea',{name:q.id,maxlength:'3000','aria-labelledby':titleId});
+    t.value = answers[q.id]||'';
+    t.addEventListener('input',()=>{answers[q.id]=t.value;touch();});
+    body.append(t);
+  }
+  else if (q.type==='grid'){
+    const table = el('table',{class:'matrix'});
+    table.append(el('thead',{}, el('tr',{}, el('td',{}), q.cols.map(c=>el('th',{scope:'col'},c)))));
+    const tb = el('tbody');
+    q.rows.forEach(([rid,label])=>{
+      const tr = el('tr',{'data-row':rid}, el('th',{scope:'row'},label));
+      q.cols.forEach(c=>{
+        const r = el('input',{type:'radio',name:rid,value:c,'aria-label':label+': '+c});
+        r.checked = answers[rid]===c;
+        r.addEventListener('change',()=>{answers[rid]=c; tr.classList.remove('missing'); touch();});
+        tr.append(el('td',{'data-col':c},r));
+      });
+      tb.append(tr);
+    });
+    table.append(tb); body.append(table);
+  }
+  else if (q.type==='consent'){
+    body.firstChild.hidden = true; qCounter--;
+    body.append(el('div',{class:'choices'}, choice('checkbox','consent','yes',q.text,answers.consent==='yes',e=>{answers.consent=e.target.checked?'yes':'';touch();})));
+  }
+  else if (q.type==='role'){
+    body.firstChild.hidden = true; qCounter--;
+    const g = el('div',{class:'roles'});
+    ROLES.forEach(r=>{
+      const lab = choice('radio','role',r.id,'',answers.role===r.id,()=>{answers.role=r.id; touch(); buildSteps(); drawRail($('#rail'),current);});
+      lab.querySelector('span').append(el('b',{},r.label), el('small',{},r.desc));
+      g.append(lab);
+    });
+    body.append(g);
+  }
+  body.append(el('div',{class:'err'}, q.type==='role'?'Choose the role that fits best.':(q.type==='consent'?'Please tick the box to continue.':'Please answer this question.')));
+
+  const showNum = q.type!=='role' && q.type!=='consent';
+  box.append(el('div',{class:'q-head'}, showNum ? el('span',{class:'q-num','aria-hidden':'true'},String(qCounter)) : null, body));
+  return box;
+}
+
+function updateContactLabels(){
+  const on = answers.early_access==='yes';
+  [['contact_name','Name'],['contact_email','Work email']].forEach(([id,txt])=>{
+    const l = document.getElementById('l_'+id);
+    if (l){ l.textContent = txt; if(!on) l.append(' ', el('i',{},'(optional)')); }
+  });
+  ['contact_company','contact_phone'].forEach(id=>{
+    const l = document.getElementById('l_'+id);
+    if (l && !l.querySelector('i')) l.append(' ', el('i',{},'(optional)'));
+  });
+}
+
+function render(){
+  const s = steps[current];
+  qCounter = steps.slice(0,current).reduce((n,st)=>n+st.qs.filter(q=>!['role','consent','offer','contact'].includes(q.type)).length,0);
+  $('#stepTitle').textContent = s.title;
+  $('#stepHelp').textContent = s.help||'';
+  $('#stepHelp').hidden = !s.help;
+  const box = $('#questions'); box.innerHTML='';
+  s.qs.forEach(q=>box.appendChild(renderQ(q)));
+  updateContactLabels();
+  drawRail($('#rail'), current);
+  $('#backBtn').style.visibility = current===0 ? 'hidden' : 'visible';
+  $('#nextBtn').textContent = current===steps.length-1 ? 'Send my answers' : 'Continue';
+  $('#submitError').style.display='none';
+}
+
+/* ---------------------------- validation --------------------------- */
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function validStep(){
+  let firstBad=null;
+  steps[current].qs.forEach(q=>{
+    const box = document.querySelector('.q[data-id="'+q.id+'"]');
+    let ok = true; const v = answers[q.id];
+    if (q.type==='grid'){
+      q.rows.forEach(([rid])=>{ if(!answers[rid]){ ok=false; box.querySelector('tr[data-row="'+rid+'"]').classList.add('missing'); }});
+    } else if (q.type==='contact'){
+      const em = (answers.contact_email||'').trim();
+      if (answers.early_access==='yes') ok = !!(answers.contact_name||'').trim() && EMAIL.test(em);
+      else ok = !em || EMAIL.test(em);
+    } else if (q.req){
+      ok = Array.isArray(v) ? v.length>0 : !!(v && String(v).trim());
+    }
+    if (!ok){ box.classList.add('invalid'); firstBad = firstBad||box; }
+  });
+  if (firstBad){ try{ firstBad.scrollIntoView({block:'center'}); }catch(e){} }
+  return !firstBad;
+}
+
+/* ------------------------------ submit ----------------------------- */
+function payload(){
+  const out = {
+    submitted_at: new Date().toISOString(),
+    role: (ROLES.find(r=>r.id===answers.role)||{}).label || '',
+    duration_minutes: Math.round((Date.now()-startedAt)/6000)/10,
+    consent: answers.consent||'',
+    early_access: answers.early_access==='yes' ? 'yes' : 'no',
+    contact_name: (answers.contact_name||'').trim(),
+    contact_email: (answers.contact_email||'').trim(),
+    contact_company: (answers.contact_company||'').trim(),
+    contact_phone: (answers.contact_phone||'').trim(),
+    followup_call: answers.followup_call==='yes' ? 'yes' : 'no'
+  };
+  steps.forEach(s=>s.qs.forEach(q=>{
+    if (['role','consent','offer','contact'].includes(q.type)) return;
+    if (q.type==='grid'){ q.rows.forEach(([rid])=> out[rid]=answers[rid]||''); return; }
+    const v = answers[q.id];
+    out[q.id] = Array.isArray(v) ? v.join('; ') : (v||'');
+  }));
+  return out;
+}
+
+async function submit(){
+  const btn = $('#nextBtn'); btn.disabled = true; btn.textContent = 'Sending…';
+  const data = payload();
+  if ($('#hp').value){ finish(data); return; }
+  if (!CONFIG.ENDPOINT){ finish(data,true); return; }
+  try{
+    await fetch(CONFIG.ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(data)});
+    finish(data);
+  }catch(e){
+    const n = $('#submitError');
+    n.textContent = 'Your answers weren\'t sent because the connection dropped. Check your internet and press "Send my answers" again.';
+    n.style.display='block';
+    btn.disabled=false; btn.textContent='Send my answers';
+  }
+}
+
+function finish(data, preview){
+  $('#survey').hidden = true; $('#done').hidden = false;
+  drawRail($('#doneRail'), steps.length);
+  if (data.early_access==='yes'){
+    const m = $('#doneMsg'); m.textContent = 'You\'re on the early-access list. We\'ll email ';
+    m.append(el('strong',{},data.contact_email), document.createTextNode(' when the pilot opens.'));
+  }
+  if (preview){ const d=$('#doneNote'); d.hidden=false; d.textContent='Preview: these answers were not saved.'; }
+  toTop();
+}
+
+/* ------------------------------ events ----------------------------- */
+drawRail($('#landingRail'), -1);
+if (!CONFIG.ENDPOINT) $('#previewNote').hidden = false;
+$('#startBtn').addEventListener('click',()=>{ $('#landing').hidden=true; $('#survey').hidden=false; render(); toTop(); });
+$('#backBtn').addEventListener('click',()=>{ if(current>0){ current--; render(); toTop(); }});
+$('#stepForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  if (!validStep()) return;
+  if (current===0) buildSteps();
+  if (current < steps.length-1){ current++; render(); toTop(); }
+  else submit();
+});
+</script>
+</body>
+</html>
