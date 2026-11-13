@@ -377,7 +377,7 @@ function renderQ(q){
     };
     box.append(
       el('div',{class:'fieldrow'}, f('contact_name','Name','text','Your name','name'), f('contact_email','Work email','email','you@company.com','email')),
-      el('div',{class:'fieldrow'}, f('contact_company','Company','text','Company name','organization'), f('contact_phone','WhatsApp or phone','tel','+92 …','tel')),
+      el('div',{class:'fieldrow'}, f('contact_company','Company','text','Company name','organization'),    f('contact_phone','Phone','tel','Phone number','tel')),
       el('div',{class:'choices'}, choice('checkbox','followup_call','yes','I\'m open to a 20-minute call to talk about this',answers.followup_call==='yes',e=>{answers.followup_call=e.target.checked?'yes':'';}))
     );
     box.append(el('div',{class:'err'},'Please add your name and a valid email so we can reach you.'));
